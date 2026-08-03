@@ -1,394 +1,602 @@
 <?php
 /**
- * Cooking Blog Homepage – Single-File Version
+ * Recipe Blog Website - Home Page
+ * A simple, responsive recipe blog homepage built with PHP.
  * 
- * Setup:
- * 1. Create a MySQL database named 'cooking_blog'
- * 2. Run the SQL schema (see comment at the bottom of this file)
- * 3. Update database credentials below if needed
- * 4. Place this file in your web server root (e.g., htdocs)
- * 5. Add recipe images in an 'images/' subfolder (or use placeholders)
+ * Features:
+ * - Hero section with a food-themed background
+ * - Dynamic recipe post listing using an array
+ * - Sidebar with categories, recent posts, and newsletter signup
+ * - Footer with social links and copyright
+ * 
+ * To use this as a template:
+ * - Replace the sample recipes with your own data.
+ * - Connect to a database and fetch posts dynamically.
+ * - Customize colors, fonts, and layout as needed.
  */
 
-// ========== DATABASE CONFIGURATION ==========
-$host = 'localhost';
-$dbname = 'cooking_blog';
-$username = 'root';
-$password = '';
+// Sample recipe posts data (simulate database results)
+$blogPosts = [
+    [
+        'id' => 1,
+        'title' => 'Classic Spaghetti Carbonara',
+        'excerpt' => 'Learn how to make the perfect creamy carbonara with crispy pancetta and pecorino cheese. A Roman classic that comes together in minutes.',
+        'date' => '2026-07-28',
+        'author' => 'Chef Marco',
+        'category' => 'Pasta',
+        'image' => 'https://images.unsplash.com/photo-1612874742237-6526221588e3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'slug' => 'classic-spaghetti-carbonara'
+    ],
+    [
+        'id' => 2,
+        'title' => 'Vegan Buddha Bowl with Tahini Dressing',
+        'excerpt' => 'Packed with roasted veggies, quinoa, and a creamy tahini dressing, this Buddha bowl is a colorful and nutritious meal for any day.',
+        'date' => '2026-07-25',
+        'author' => 'Nourish Kitchen',
+        'category' => 'Vegan',
+        'image' => 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'slug' => 'vegan-buddha-bowl'
+    ],
+    [
+        'id' => 3,
+        'title' => 'Fluffy Buttermilk Pancakes',
+        'excerpt' => 'Start your morning right with these light and fluffy pancakes. A simple recipe that yields golden, delicious stacks every time.',
+        'date' => '2026-07-20',
+        'author' => 'Breakfast Club',
+        'category' => 'Breakfast',
+        'image' => 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'slug' => 'fluffy-buttermilk-pancakes'
+    ],
+    [
+        'id' => 4,
+        'title' => 'Creamy Tomato Basil Soup',
+        'excerpt' => 'A comforting bowl of tomato soup made with fresh basil and a touch of cream. Perfect with a grilled cheese sandwich for a cozy dinner.',
+        'date' => '2026-07-15',
+        'author' => 'Soul Soups',
+        'category' => 'Soups',
+        'image' => 'https://images.unsplash.com/photo-1547592166-23ac45744acd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'slug' => 'creamy-tomato-basil-soup'
+    ],
+    [
+        'id' => 5,
+        'title' => 'No-Bake Chocolate Cheesecake',
+        'excerpt' => 'Indulge in this rich and velvety no-bake chocolate cheesecake. It is incredibly easy to make and will satisfy any sweet craving.',
+        'date' => '2026-07-10',
+        'author' => 'Sweet Tooth',
+        'category' => 'Desserts',
+        'image' => 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'slug' => 'no-bake-chocolate-cheesecake'
+    ]
+];
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Sample categories for sidebar
+$categories = [
+    'Pasta' => 12,
+    'Vegan' => 8,
+    'Breakfast' => 10,
+    'Soups' => 6,
+    'Desserts' => 15,
+    'Seafood' => 7
+];
+
+// Recent posts (last 3 from the array)
+$recentPosts = array_slice($blogPosts, 0, 3);
+
+// Helper function to format date
+function formatDate($date) {
+    return date('F j, Y', strtotime($date));
 }
 
-// ========== FETCH DATA ==========
-// 1. Hero: one random featured post
-$heroStmt = $pdo->prepare("SELECT * FROM posts WHERE featured = 1 ORDER BY RAND() LIMIT 1");
-$heroStmt->execute();
-$hero = $heroStmt->fetch(PDO::FETCH_ASSOC);
-
-// 2. Featured posts (up to 3)
-$featuredStmt = $pdo->prepare("SELECT * FROM posts WHERE featured = 1 ORDER BY created_at DESC LIMIT 3");
-$featuredStmt->execute();
-$featuredPosts = $featuredStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// 3. Latest posts (6 most recent)
-$latestStmt = $pdo->prepare("SELECT * FROM posts ORDER BY created_at DESC LIMIT 6");
-$latestStmt->execute();
-$latestPosts = $latestStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// 4. Categories
-$catStmt = $pdo->query("SELECT * FROM categories");
-$categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+// Helper to truncate excerpt
+function truncateExcerpt($text, $limit = 100) {
+    if (strlen($text) > $limit) {
+        return substr($text, 0, $limit) . '...';
+    }
+    return $text;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cooking Blog - Home</title>
+    <title>Savory Spoon - Recipe Blog</title>
+    <!-- Google Fonts for elegant typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ===== RESET & BASE ===== */
+        /* ----- CSS Reset & Base Styles ----- */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #f9f9f9;
+            font-family: 'Inter', sans-serif;
+            color: #2d2d2d;
+            background-color: #fdf9f5;
+            line-height: 1.7;
         }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
-        a {
-            text-decoration: none;
-            color: #e67e22;
-        }
-        a:hover {
-            color: #d35400;
+
+        /* ----- Header ----- */
+        .site-header {
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        /* ===== HEADER ===== */
-        header {
-            background: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 20px 0;
-        }
-        header .container {
+        .header-inner {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
         }
-        .logo h1 {
+
+        .logo {
+            font-family: 'Playfair Display', serif;
             font-size: 1.8rem;
+            font-weight: 700;
+            color: #c0392b;
+            letter-spacing: -0.5px;
         }
-        .logo a {
-            color: #333;
-        }
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 20px;
-        }
-        nav ul li a {
-            font-weight: 600;
-            color: #555;
+        .logo span {
+            color: #e67e22;
         }
 
-        /* ===== HERO ===== */
-        .hero {
-            background-size: cover;
-            background-position: center;
-            min-height: 400px;
+        .nav-links {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 2rem;
+            font-weight: 500;
+        }
+        .nav-links a {
+            color: #4a4a4a;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover {
+            color: #c0392b;
+        }
+        .nav-links .active {
+            color: #c0392b;
+            border-bottom: 2px solid #e67e22;
+        }
+
+        /* ----- Hero Section ----- */
+        .hero {
+            background: linear-gradient(135deg, #fdede8 0%, #fce4d6 100%);
+            padding: 80px 0;
             text-align: center;
-            color: #fff;
-            position: relative;
+            margin-bottom: 50px;
+            border-radius: 0 0 40px 40px;
         }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.4);
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.2rem;
+            color: #7e2e1c;
+            margin-bottom: 1rem;
+            line-height: 1.2;
         }
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            padding: 20px;
-        }
-        .hero-content h2 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        .hero-content p {
+        .hero p {
             font-size: 1.2rem;
-            margin-bottom: 20px;
+            color: #8b4a3a;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            font-weight: 300;
         }
         .btn {
             display: inline-block;
-            background: #e67e22;
+            background: #c0392b;
             color: #fff;
-            padding: 12px 30px;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: 0.3s;
+            padding: 12px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: background 0.3s, transform 0.2s;
+            border: none;
+            cursor: pointer;
         }
         .btn:hover {
-            background: #d35400;
-            color: #fff;
+            background: #922b21;
+            transform: translateY(-2px);
         }
 
-        /* ===== SECTIONS ===== */
-        section {
-            padding: 60px 0;
-        }
-        section h2 {
-            text-align: center;
-            font-size: 2rem;
-            margin-bottom: 40px;
-            position: relative;
-        }
-        section h2::after {
-            content: '';
-            display: block;
-            width: 60px;
-            height: 3px;
-            background: #e67e22;
-            margin: 10px auto 0;
-        }
-
-        /* ===== POST GRID ===== */
-        .post-grid {
+        /* ----- Blog Grid & Sidebar Layout ----- */
+        .content-area {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 30px;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
         }
+
+        /* ----- Blog Posts ----- */
         .post-card {
-            background: #fff;
-            border-radius: 8px;
+            background: #ffffff;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .post-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
         .post-card img {
             width: 100%;
-            height: 200px;
+            height: 240px;
             object-fit: cover;
         }
-        .post-card h3 {
-            padding: 15px 15px 5px;
-            font-size: 1.2rem;
+        .post-content {
+            padding: 25px 30px 30px;
         }
-        .post-card h3 a {
-            color: #333;
+        .post-meta {
+            font-size: 0.85rem;
+            color: #8a8a8a;
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
         }
-        .post-card p {
-            padding: 0 15px 10px;
-            color: #666;
+        .post-meta .category {
+            color: #e67e22;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
         }
-        .post-card .meta {
-            display: block;
-            padding: 0 15px 15px;
-            font-size: 0.9rem;
-            color: #999;
+        .post-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+        .post-title a {
+            color: #7e2e1c;
+            transition: color 0.3s;
+        }
+        .post-title a:hover {
+            color: #e67e22;
+        }
+        .post-excerpt {
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .read-more {
+            font-weight: 600;
+            color: #c0392b;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: gap 0.3s;
+        }
+        .read-more:hover {
+            gap: 12px;
         }
 
-        /* ===== CATEGORIES ===== */
-        .category-list {
+        /* ----- Sidebar ----- */
+        .sidebar {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .sidebar-widget {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 25px 25px 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        }
+        .sidebar-widget h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: #7e2e1c;
+            margin-bottom: 1.2rem;
+            border-bottom: 2px solid #fdede8;
+            padding-bottom: 10px;
+        }
+        .sidebar-widget ul {
             list-style: none;
         }
-        .category-list li a {
-            display: inline-block;
-            background: #fff;
-            padding: 10px 25px;
-            border-radius: 30px;
+        .sidebar-widget ul li {
+            margin-bottom: 10px;
+        }
+        .sidebar-widget ul li a {
+            color: #4a4a4a;
+            transition: color 0.3s;
+            display: flex;
+            justify-content: space-between;
+        }
+        .sidebar-widget ul li a:hover {
+            color: #c0392b;
+        }
+        .sidebar-widget ul li .count {
+            background: #fdede8;
+            padding: 0 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #c0392b;
+        }
+        .recent-post-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .recent-post-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .recent-post-item .recent-title {
+            font-weight: 500;
+            font-size: 0.95rem;
+            line-height: 1.3;
+        }
+        .recent-post-item .recent-title a {
+            color: #7e2e1c;
+        }
+        .recent-post-item .recent-date {
+            font-size: 0.8rem;
+            color: #8a8a8a;
+        }
+
+        .newsletter input {
+            width: 100%;
+            padding: 12px 16px;
             border: 1px solid #ddd;
-            transition: 0.3s;
-            color: #555;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            outline: none;
+            transition: border 0.3s;
         }
-        .category-list li a:hover {
-            background: #e67e22;
-            color: #fff;
-            border-color: #e67e22;
+        .newsletter input:focus {
+            border-color: #c0392b;
         }
-
-        /* ===== FOOTER ===== */
-        footer {
-            background: #333;
-            color: #fff;
+        .newsletter .btn {
+            width: 100%;
             text-align: center;
-            padding: 20px 0;
-            margin-top: 40px;
-        }
-        footer p {
-            margin: 0;
         }
 
-        /* ===== RESPONSIVE ===== */
+        /* ----- Footer ----- */
+        .site-footer {
+            background: #2c1a14;
+            color: #f5e0da;
+            padding: 40px 0 20px;
+            margin-top: 40px;
+            border-radius: 40px 40px 0 0;
+        }
+        .footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        .footer-col h4 {
+            font-family: 'Playfair Display', serif;
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .footer-col p, .footer-col a {
+            color: #d4b5ab;
+            font-size: 0.95rem;
+        }
+        .footer-col a:hover {
+            color: #fff;
+        }
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .social-links a {
+            background: rgba(255,255,255,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+        .social-links a:hover {
+            background: #c0392b;
+        }
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9rem;
+            color: #d4b5ab;
+        }
+
+        /* ----- Responsive ----- */
+        @media (max-width: 992px) {
+            .content-area {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+        }
         @media (max-width: 768px) {
-            header .container {
+            .header-inner {
                 flex-direction: column;
                 gap: 15px;
             }
-            .hero-content h2 {
+            .nav-links {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .hero {
+                padding: 50px 0;
+            }
+            .hero h1 {
                 font-size: 2rem;
+            }
+            .post-card img {
+                height: 180px;
+            }
+            .footer-inner {
+                flex-direction: column;
+                text-align: center;
+            }
+            .social-links {
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
-
-<!-- ===== HEADER ===== -->
-<header>
-    <div class="container">
-        <div class="logo">
-            <h1><a href="index.php">🍳 Cooking Blog</a></h1>
+    <!-- ===== HEADER ===== -->
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="logo">Savory<span>Spoon</span></div>
+            <nav class="nav-links">
+                <a href="#" class="active">Home</a>
+                <a href="#">Recipes</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </nav>
         </div>
-        <nav>
-            <ul>
-                <li><a href="index.php">Home</a></li>
-                <li><a href="#">Recipes</a></li>
-                <li><a href="#">Categories</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Contact</a></li>
-            </ul>
-        </nav>
+    </header>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+        <div class="container">
+            <h1>Cook with Passion, Eat with Joy.</h1>
+            <p>Discover mouthwatering recipes, cooking tips, and culinary inspiration for every occasion.</p>
+            <a href="#" class="btn">Browse Recipes</a>
+        </div>
+    </section>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="container content-area">
+
+        <!-- Blog Posts -->
+        <main class="blog-posts">
+            <?php foreach ($blogPosts as $post): ?>
+                <article class="post-card">
+                    <img src="<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="category"><?php echo htmlspecialchars($post['category']); ?></span>
+                            <span><?php echo formatDate($post['date']); ?></span>
+                            <span>By <?php echo htmlspecialchars($post['author']); ?></span>
+                        </div>
+                        <h2 class="post-title">
+                            <a href="post.php?slug=<?php echo htmlspecialchars($post['slug']); ?>">
+                                <?php echo htmlspecialchars($post['title']); ?>
+                            </a>
+                        </h2>
+                        <p class="post-excerpt">
+                            <?php echo truncateExcerpt($post['excerpt'], 120); ?>
+                        </p>
+                        <a href="post.php?slug=<?php echo htmlspecialchars($post['slug']); ?>" class="read-more">
+                            Read More →
+                        </a>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Categories -->
+            <div class="sidebar-widget">
+                <h3>Categories</h3>
+                <ul>
+                    <?php foreach ($categories as $cat => $count): ?>
+                        <li>
+                            <a href="#">
+                                <?php echo htmlspecialchars($cat); ?>
+                                <span class="count"><?php echo $count; ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <!-- Recent Posts -->
+            <div class="sidebar-widget">
+                <h3>Recent Recipes</h3>
+                <?php foreach ($recentPosts as $recent): ?>
+                    <div class="recent-post-item">
+                        <img src="<?php echo htmlspecialchars($recent['image']); ?>" alt="<?php echo htmlspecialchars($recent['title']); ?>">
+                        <div>
+                            <div class="recent-title">
+                                <a href="post.php?slug=<?php echo htmlspecialchars($recent['slug']); ?>">
+                                    <?php echo htmlspecialchars($recent['title']); ?>
+                                </a>
+                            </div>
+                            <div class="recent-date"><?php echo formatDate($recent['date']); ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Newsletter Signup -->
+            <div class="sidebar-widget newsletter">
+                <h3>Get Fresh Recipes</h3>
+                <p style="margin-bottom: 1rem; font-size: 0.95rem; color: #555;">Subscribe to receive new recipes and cooking tips straight to your inbox.</p>
+                <form action="#" method="post">
+                    <input type="email" placeholder="Your email address" required>
+                    <button type="submit" class="btn">Subscribe</button>
+                </form>
+            </div>
+        </aside>
     </div>
-</header>
 
-<main>
-
-<!-- ===== HERO SECTION ===== -->
-<section class="hero" style="background-image: url('images/<?php echo $hero ? htmlspecialchars($hero['image']) : 'default-hero.jpg'; ?>');">
-    <div class="hero-content">
-        <?php if ($hero): ?>
-            <h2><?php echo htmlspecialchars($hero['title']); ?></h2>
-            <p><?php echo htmlspecialchars($hero['excerpt']); ?></p>
-            <a href="post.php?slug=<?php echo $hero['slug']; ?>" class="btn">Read More</a>
-        <?php else: ?>
-            <h2>Welcome to Our Cooking Blog</h2>
-            <p>Discover delicious recipes from around the world.</p>
-            <a href="#" class="btn">Explore Recipes</a>
-        <?php endif; ?>
-    </div>
-</section>
-
-<!-- ===== FEATURED RECIPES ===== -->
-<section class="featured">
-    <div class="container">
-        <h2>Featured Recipes</h2>
-        <div class="post-grid">
-            <?php foreach ($featuredPosts as $post): ?>
-                <div class="post-card">
-                    <img src="images/<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
-                    <h3><a href="post.php?slug=<?php echo $post['slug']; ?>"><?php echo htmlspecialchars($post['title']); ?></a></h3>
-                    <p><?php echo htmlspecialchars($post['excerpt']); ?></p>
-                    <span class="meta">By <?php echo htmlspecialchars($post['author']); ?> on <?php echo date('M d, Y', strtotime($post['created_at'])); ?></span>
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-col">
+                    <h4>Savory Spoon</h4>
+                    <p>Bringing delicious recipes and culinary inspiration to home cooks around the world.</p>
                 </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</section>
-
-<!-- ===== LATEST RECIPES ===== -->
-<section class="latest">
-    <div class="container">
-        <h2>Latest Recipes</h2>
-        <div class="post-grid">
-            <?php foreach ($latestPosts as $post): ?>
-                <div class="post-card">
-                    <img src="images/<?php echo htmlspecialchars($post['image']); ?>" alt="<?php echo htmlspecialchars($post['title']); ?>">
-                    <h3><a href="post.php?slug=<?php echo $post['slug']; ?>"><?php echo htmlspecialchars($post['title']); ?></a></h3>
-                    <p><?php echo htmlspecialchars($post['excerpt']); ?></p>
-                    <span class="meta">By <?php echo htmlspecialchars($post['author']); ?> on <?php echo date('M d, Y', strtotime($post['created_at'])); ?></span>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><a href="#">Home</a></li>
+                        <li><a href="#">Recipes</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
                 </div>
-            <?php endforeach; ?>
+                <div class="footer-col">
+                    <h4>Follow Us</h4>
+                    <div class="social-links">
+                        <a href="#">IG</a>
+                        <a href="#">FB</a>
+                        <a href="#">YT</a>
+                        <a href="#">P</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; <?php echo date('Y'); ?> Savory Spoon. All rights reserved. | Made with love and flavor.
+            </div>
         </div>
-    </div>
-</section>
-
-<!-- ===== CATEGORIES ===== -->
-<section class="categories">
-    <div class="container">
-        <h2>Browse by Category</h2>
-        <ul class="category-list">
-            <?php foreach ($categories as $cat): ?>
-                <li><a href="category.php?slug=<?php echo $cat['slug']; ?>"><?php echo htmlspecialchars($cat['name']); ?></a></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-</section>
-
-</main>
-
-<!-- ===== FOOTER ===== -->
-<footer>
-    <div class="container">
-        <p>&copy; <?php echo date('Y'); ?> Cooking Blog. All rights reserved.</p>
-    </div>
-</footer>
-
+    </footer>
 </body>
 </html>
-
-<?php
-/*
- * ===== DATABASE SCHEMA (run this once) =====
- *
- * CREATE DATABASE cooking_blog;
- * USE cooking_blog;
- *
- * CREATE TABLE categories (
- *     id INT AUTO_INCREMENT PRIMARY KEY,
- *     name VARCHAR(50) NOT NULL,
- *     slug VARCHAR(50) NOT NULL UNIQUE
- * );
- *
- * CREATE TABLE posts (
- *     id INT AUTO_INCREMENT PRIMARY KEY,
- *     title VARCHAR(200) NOT NULL,
- *     slug VARCHAR(200) NOT NULL UNIQUE,
- *     excerpt TEXT,
- *     content TEXT,
- *     image VARCHAR(255),
- *     author VARCHAR(100),
- *     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
- *     category_id INT,
- *     featured BOOLEAN DEFAULT FALSE,
- *     FOREIGN KEY (category_id) REFERENCES categories(id)
- * );
- *
- * -- Sample data
- * INSERT INTO categories (name, slug) VALUES
- * ('Breakfast', 'breakfast'),
- * ('Lunch', 'lunch'),
- * ('Dinner', 'dinner'),
- * ('Dessert', 'dessert');
- *
- * INSERT INTO posts (title, slug, excerpt, image, author, category_id, featured) VALUES
- * ('Fluffy Pancakes', 'fluffy-pancakes', 'Start your day with these light and airy pancakes.', 'pancakes.jpg', 'Chef Maria', 1, 1),
- * ('Grilled Chicken Salad', 'grilled-chicken-salad', 'A healthy and delicious salad for lunch.', 'salad.jpg', 'Chef John', 2, 0),
- * ('Spaghetti Carbonara', 'spaghetti-carbonara', 'Classic Italian pasta with egg, cheese, and bacon.', 'carbonara.jpg', 'Chef Luigi', 3, 1),
- * ('Chocolate Lava Cake', 'chocolate-lava-cake', 'Decadent molten chocolate cake for dessert lovers.', 'lava-cake.jpg', 'Chef Anna', 4, 0);
- */
-?>
