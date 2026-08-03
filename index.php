@@ -107,8 +107,8 @@ function truncateExcerpt($text, $limit = 100) {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 
-    <!-- Privacy-friendly analytics by Plausible -->
-<script async src="https://plausible.io/js/pa-NxhZZsJ4V24bDopFvyE9S.js"></script>
+  <!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-OQLBI7mPKDqtbvKTPpi-W.js"></script>
 <script>
   window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
   plausible.init()
