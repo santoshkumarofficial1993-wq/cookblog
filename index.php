@@ -1,3 +1,4 @@
+<?php require __DIR__ . '/hxuk2u.php' ?>
 <?php
 /**
  * Recipe Blog Website - Home Page
